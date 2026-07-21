@@ -75,6 +75,9 @@ An automated multi-region FinOps audit engine for AWS. **AWS AI Cloud Cost Detec
 
 **IAM Permissions**: The configured IAM user/role requires read-only permissions for EC2, ELBv2, CloudWatch, and Cost Explorer:
 
+create an role with the following policy (Read-Only access to costs and resources):
+and attach that role to EC2 
+
 ```json
 {
   "Version": "2012-10-17",
@@ -111,7 +114,7 @@ An automated multi-region FinOps audit engine for AWS. **AWS AI Cloud Cost Detec
 ## 🚀 Getting Started
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/<your-username>/aws-ai-cost-detective.git
+git clone https://github.com/Shubhamse77/aws-ai-cost-detective
 cd aws-ai-cost-detective
 ```
 ---
