@@ -118,3 +118,10 @@ if "master_payload" in st.session_state:
 
 else:
     st.info("Click **🚀 Run Multi-Region Cost Audit** in the sidebar to scan your AWS environment.")
+
+# Footer Section
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: gray;'>Built with ❤️ by <b>Shubham Thakur</b> | AWS AI Cloud Cost Detective</div>", 
+    unsafe_allow_html=True
+)
