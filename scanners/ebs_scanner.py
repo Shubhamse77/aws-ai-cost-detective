@@ -5,7 +5,7 @@ def scan_ebs(session, region, days=90):
     Scans a single region for:
     1. Unattached EBS volumes
     2. Stale EBS snapshots older than `days`
-    3. GP2 volumes eligible for GP3 migration
+    3. GP2 volumes eligible for GP3 migration (Attached/In-Use ONLY)
     """
     ec2_client = session.client('ec2', region_name=region)
     findings = {
@@ -35,8 +35,8 @@ def scan_ebs(session, region, days=90):
                     "name": name
                 })
             
-            # Check 2: GP2 to GP3 Migration Candidates
-            if vol_type == 'gp2':
+            # Check 2: GP2 to GP3 Migration Candidates (ONLY IF ATTACHED / IN-USE)
+            if vol_type == 'gp2' and state == 'in-use':
                 findings["gp2_volumes"].append({
                     "region": region,
                     "volume_id": vol_id,
