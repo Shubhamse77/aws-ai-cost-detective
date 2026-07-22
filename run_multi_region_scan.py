@@ -16,6 +16,5 @@ def scan_region_worker(session, region):
         "gp2_volumes": ebs.get("gp2_volumes", []),
         "unattached_eips": eip.get("unattached_eips", []),
         "stopped_ec2s": ec2.get("stopped_instances", []),
-        "low_cpu_ec2s": ec2.get("low_cpu_instances", []),
         "unused_albs": alb.get("unused_albs", [])
     }
