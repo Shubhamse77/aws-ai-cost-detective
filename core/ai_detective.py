@@ -31,7 +31,7 @@ def generate_fallback_analysis(payload_json):
                 "remediation_cli": f"aws ec2 delete-snapshot --snapshot-id {snap['snapshot_id']} --region {region}"
             })
 
-        # 3. GP2 to GP3 Migration (NEW)
+        # 3. GP2 to GP3 Migration (Attached Volumes)
         for vol in reg_data.get("gp2_volumes", []):
             vol_id = vol["volume_id"]
             recommendations.append({
@@ -40,7 +40,7 @@ def generate_fallback_analysis(payload_json):
                 "resource_id": vol_id,
                 "risk_level": "LOW_RISK",
                 "estimated_monthly_savings_usd": vol.get("estimated_monthly_waste_usd", 0.0),
-                "reason": f"Volume '{vol['name']}' ({vol['size_gb']} GB) is using legacy gp2 storage. Migrating to gp3 saves 20% on monthly storage costs with zero downtime.",
+                "reason": f"Attached volume '{vol['name']}' ({vol['size_gb']} GB) uses legacy gp2 storage. Migrating to gp3 saves 20% on monthly storage costs with zero downtime.",
                 "remediation_cli": f"aws ec2 modify-volume --volume-id {vol_id} --volume-type gp3 --region {region}"
             })
 
@@ -68,19 +68,7 @@ def generate_fallback_analysis(payload_json):
                 "remediation_cli": f"aws ec2 terminate-instances --instance-ids {ec2['instance_id']} --region {region}"
             })
 
-        # 6. Low CPU EC2s
-        for ec2 in reg_data.get("low_cpu_ec2s", []):
-            recommendations.append({
-                "region": region,
-                "resource_type": "Idle / Low CPU EC2 Instance",
-                "resource_id": ec2["instance_id"],
-                "risk_level": "MEDIUM_RISK",
-                "estimated_monthly_savings_usd": ec2.get("estimated_monthly_waste_usd", 0.0),
-                "reason": f"Instance '{ec2['name']}' ({ec2['instance_type']}) has average CPU < 5% ({ec2['avg_cpu_percent']}%).",
-                "remediation_cli": f"aws ec2 stop-instances --instance-ids {ec2['instance_id']} --region {region}"
-            })
-
-        # 7. Unused Load Balancers
+        # 6. Unused Load Balancers
         for alb in reg_data.get("unused_albs", []):
             recommendations.append({
                 "region": region,
