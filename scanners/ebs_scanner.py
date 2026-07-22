@@ -1,44 +1,64 @@
 from datetime import datetime, timezone
 
-def scan_ebs(session, region, max_snapshot_days=90):
+def scan_ebs(session, region, days=90):
     """
-    Scans a single AWS region for:
-    1. EBS volumes in 'available' state (unattached)
-    2. Snapshots older than max_snapshot_days
+    Scans a single region for:
+    1. Unattached EBS volumes
+    2. Stale EBS snapshots older than `days`
+    3. GP2 volumes eligible for GP3 migration
     """
     ec2_client = session.client('ec2', region_name=region)
     findings = {
         "unattached_volumes": [],
-        "stale_snapshots": []
+        "stale_snapshots": [],
+        "gp2_volumes": []
     }
 
     try:
-        # 1. Fetch unattached volumes
-        vol_response = ec2_client.describe_volumes(
-            Filters=[{'Name': 'status', 'Values': ['available']}]
-        )
-        for vol in vol_response.get('Volumes', []):
-            findings["unattached_volumes"].append({
-                "region": region,
-                "volume_id": vol['VolumeId'],
-                "size_gb": vol['Size'],
-                "volume_type": vol['VolumeType'],
-                "create_time": vol['CreateTime'].isoformat()
-            })
+        # Scan Volumes
+        vols_res = ec2_client.describe_volumes()
+        for vol in vols_res.get('Volumes', []):
+            vol_id = vol['VolumeId']
+            state = vol['State']
+            size = vol['Size']
+            vol_type = vol['VolumeType']
 
-        # 2. Fetch account-owned snapshots older than max_snapshot_days
-        snap_response = ec2_client.describe_snapshots(OwnerIds=['self'])
-        now = datetime.now(timezone.utc)
+            tags = {t['Key']: t['Value'] for t in vol.get('Tags', [])}
+            name = tags.get('Name', 'N/A')
 
-        for snap in snap_response.get('Snapshots', []):
-            age_days = (now - snap['StartTime']).days
-            if age_days > max_snapshot_days:
+            # Check 1: Unattached Volumes
+            if state == 'available':
+                findings["unattached_volumes"].append({
+                    "region": region,
+                    "volume_id": vol_id,
+                    "size_gb": size,
+                    "name": name
+                })
+            
+            # Check 2: GP2 to GP3 Migration Candidates
+            if vol_type == 'gp2':
+                findings["gp2_volumes"].append({
+                    "region": region,
+                    "volume_id": vol_id,
+                    "size_gb": size,
+                    "name": name,
+                    "current_type": "gp2"
+                })
+
+        # Scan Snapshots
+        snaps_res = ec2_client.describe_snapshots(OwnerIds=['self'])
+        for snap in snaps_res.get('Snapshots', []):
+            snap_id = snap['SnapshotId']
+            start_time = snap['StartTime']
+            vol_size = snap.get('VolumeSize', 0)
+
+            age_days = (datetime.now(timezone.utc) - start_time).days
+            if age_days > days:
                 findings["stale_snapshots"].append({
                     "region": region,
-                    "snapshot_id": snap['SnapshotId'],
-                    "volume_size_gb": snap.get('VolumeSize', 0),
-                    "age_days": age_days,
-                    "description": snap.get('Description', '')
+                    "snapshot_id": snap_id,
+                    "volume_size_gb": vol_size,
+                    "age_days": age_days
                 })
 
     except Exception as e:
