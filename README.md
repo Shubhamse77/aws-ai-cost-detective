@@ -121,6 +121,8 @@ cd aws-ai-cost-detective
 ### 2. Set Up Virtual Environment
 
 ```bash
+sudo apt install python3.14-venv
+
 # Create virtual environment
 python3 -m venv venv
 
